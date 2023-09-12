@@ -17,6 +17,7 @@ import java.util.Set;
 
 import org.eclipse.cdt.core.model.ITranslationUnit;
 import org.eclipse.cdt.internal.ui.navigator.CNavigatorContentProvider;
+import org.eclipse.cdt.lsp.SymbolsManager;
 import org.eclipse.cdt.lsp.internal.messages.LspUiMessages;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.viewers.AbstractTreeViewer;

@@ -10,7 +10,7 @@
  * Gesa Hentschke (Bachmann electronic GmbH) - initial implementation
  *******************************************************************************/
 
-package org.eclipse.cdt.lsp.ui.navigator;
+package org.eclipse.cdt.lsp;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.eclipse.cdt.core.model.ITranslationUnit;
-import org.eclipse.cdt.lsp.LspUtils;
 import org.eclipse.core.filebuffers.FileBuffers;
 import org.eclipse.core.filebuffers.IFileBuffer;
 import org.eclipse.core.filebuffers.IFileBufferListener;
@@ -157,6 +156,21 @@ public class SymbolsManager implements IDeferredWorkbenchAdapter {
 		return null;
 	}
 
+	/**
+	 * Get the cached elements of a <code>CompileUnit</code>.
+	 * @param file
+	 * @return elements of the <code>CompileUnit</code> or <code>null</code> if the cache is not yet filled by {@link SymbolsManager#loadCompileUnitElements(IFile)}
+	 */
+	public Object[] getCompileUnitElements(IFile file) {
+		if (file != null && file.getLocationURI() != null) {
+			CompileUnit compileUnit = getCompileUnit(file.getLocationURI());
+			if (compileUnit != null && !compileUnit.isDirty) {
+				return compileUnit.getElements();
+			}
+		}
+		return null;
+	}
+
 	public boolean isDirty(ITranslationUnit translationUnit) {
 		if (translationUnit.getFile() != null) {
 			CompileUnit compileUnit = getCompileUnit(translationUnit.getFile().getLocationURI());
@@ -218,6 +232,21 @@ public class SymbolsManager implements IDeferredWorkbenchAdapter {
 			if (compileUnit == null) {
 				return EMPTY;
 			}
+			refreshTreeContentFromLS(compileUnit);
+			return compileUnit.getElements();
+		}
+		return EMPTY;
+	}
+
+	/**
+	 * Get the elements of a {@link CompileUnit}
+	 * Note: long running operation. Should be handled in worker thread.
+	 * @param uri
+	 * @return elements of a <code>CompileUnit</code>.
+	 */
+	public Object[] loadCompileUnitElements(IFile file) {
+		if (file != null && file.getLocationURI() != null) {
+			CompileUnit compileUnit = getCompileUnit(file.getLocationURI(), file);
 			refreshTreeContentFromLS(compileUnit);
 			return compileUnit.getElements();
 		}
