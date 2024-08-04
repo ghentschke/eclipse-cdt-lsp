@@ -33,10 +33,11 @@ public class ClangdConfigFileChecker {
 	/**
 	 * Checks if the .clangd file contains valid yaml syntax. Adds error marker to the file if not.
 	 * @param configFile
+	 * @return true if syntax is valid
 	 */
-	public void checkConfigFile(IFile configFile) {
+	public boolean checkConfigFile(IFile configFile) {
 		if (!configFile.exists()) {
-			return;
+			return false;
 		}
 		Yaml yaml = new Yaml();
 		try (var inputStream = configFile.getContents()) {
@@ -44,6 +45,7 @@ public class ClangdConfigFileChecker {
 				removeMarkerFromClangdConfig(configFile);
 				//throws ScannerException and ParserException:
 				yaml.load(inputStream);
+				return true;
 			} catch (MarkedYAMLException yamlException) {
 				// re-read the file, because the buffer which comes along with MarkedYAMLException is limited to ~800 bytes.
 				try (var reReadStream = configFile.getContents()) {
@@ -57,6 +59,7 @@ public class ClangdConfigFileChecker {
 		} catch (IOException | CoreException e) {
 			Platform.getLog(getClass()).error(e.getMessage(), e);
 		}
+		return false;
 	}
 
 	private void addMarkerToClangdConfig(IFile configFile, MarkedYAMLException yamlException, byte[] buffer) {

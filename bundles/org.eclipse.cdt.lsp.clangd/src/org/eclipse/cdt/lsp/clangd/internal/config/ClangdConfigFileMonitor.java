@@ -15,6 +15,7 @@ package org.eclipse.cdt.lsp.clangd.internal.config;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.eclipse.cdt.lsp.util.LspUtils;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResourceChangeEvent;
 import org.eclipse.core.resources.IResourceChangeListener;
@@ -68,13 +69,25 @@ public class ClangdConfigFileMonitor {
 
 		@Override
 		public IStatus runInWorkspace(IProgressMonitor monitor) throws CoreException {
+			var validSyntax = true;
 			while (pendingFiles.peek() != null) {
-				checker.checkConfigFile(pendingFiles.poll());
+				validSyntax &= checker.checkConfigFile(pendingFiles.poll());
+			}
+			if (validSyntax && isLsActive()) {
+				restartClangd();
 			}
 			return Status.OK_STATUS;
 		}
 
 	};
+
+	private boolean isLsActive() {
+		return LspUtils.getLanguageServers().findAny().isPresent();
+	}
+
+	private void restartClangd() {
+		LspUtils.getLanguageServers().forEach(w -> w.restart());
+	}
 
 	public ClangdConfigFileMonitor start() {
 		workspace.addResourceChangeListener(listener);
