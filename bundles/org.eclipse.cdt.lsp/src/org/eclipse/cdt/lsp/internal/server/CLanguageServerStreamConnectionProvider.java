@@ -20,11 +20,13 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 import org.eclipse.cdt.lsp.plugin.LspPlugin;
 import org.eclipse.cdt.lsp.server.ICLanguageServerProvider;
 import org.eclipse.cdt.lsp.server.ICLanguageServerProvider3;
 import org.eclipse.cdt.lsp.server.ILogProvider;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.lsp4e.server.ProcessStreamConnectionProvider;
 
 public final class CLanguageServerStreamConnectionProvider extends ProcessStreamConnectionProvider {
@@ -72,14 +74,22 @@ public final class CLanguageServerStreamConnectionProvider extends ProcessStream
 
 	@Override
 	public void stop() {
-		if (errorStreamPipeStopper != null) {
-			errorStreamPipeStopper.run();
+		final var process = getProcess();
+		final var currentStreamPipeStopper = errorStreamPipeStopper;
+		// First stop writing:
+		if (currentStreamPipeStopper != null) {
+			currentStreamPipeStopper.run();
 		}
-		// destroy LS process first, to prevent a write operation on a already closed output stream:
+		// then destroy LS process,
 		super.stop();
-		// then close output stream.
-		// TODO: we need to wait here until the process has been terminated:
-		getLogProvider().ifPresent(lp -> lp.close());
+		// and close output stream. We need to wait here until the process has been terminated:
+		try {
+			if (!process.onExit().get().isAlive()) {
+				getLogProvider().ifPresent(lp -> lp.close());
+			}
+		} catch (InterruptedException | ExecutionException e) {
+			Platform.getLog(CLanguageServerStreamConnectionProvider.class).error(e.getMessage(), e);
+		}
 	}
 
 	private boolean logEnabled() {
