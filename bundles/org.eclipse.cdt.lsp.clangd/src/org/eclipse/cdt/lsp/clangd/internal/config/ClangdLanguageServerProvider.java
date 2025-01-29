@@ -19,6 +19,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.eclipse.cdt.lsp.clangd.ClangdConfiguration;
@@ -33,6 +34,7 @@ import org.eclipse.core.runtime.ServiceCaller;
 import org.eclipse.core.variables.VariablesPlugin;
 
 public final class ClangdLanguageServerProvider implements ICLanguageServerProvider3 {
+	private AtomicBoolean validCommands;
 
 	private final ServiceCaller<ClangdConfiguration> configuration = new ServiceCaller<>(getClass(),
 			ClangdConfiguration.class);
@@ -42,7 +44,13 @@ public final class ClangdLanguageServerProvider implements ICLanguageServerProvi
 
 	@Override
 	public Object getInitializationOptions(URI rootUri) {
+		validCommands = null;
 		List<Object> result = new ArrayList<>();
+		if (!validCommands()) {
+			validCommands = null;
+			result.add("invalid clangd commands");
+			return result;
+		}
 		ServiceCaller.callOnce(getClass(), ClangdFallbackFlags.class, //
 				f -> result.add(f.getFallbackFlagsFromInitialUri(rootUri)));
 		return result.stream().filter(Objects::nonNull).findFirst().orElse(null);
@@ -76,6 +84,18 @@ public final class ClangdLanguageServerProvider implements ICLanguageServerProvi
 		boolean[] enabled = new boolean[1];
 		configuration.call(c -> enabled[0] = ((ClangdOptions2) c.options(null)).logToConsole());
 		return enabled[0];
+	}
+
+	@Override
+	public boolean validCommands() {
+		if (validCommands == null) {
+			validCommands = new AtomicBoolean(ValidateClangdCommands.validCommands(getCommands(null)));
+		}
+		if (!validCommands.get()) {
+			validCommands = null;
+			return false;
+		}
+		return validCommands.get();
 	}
 
 }

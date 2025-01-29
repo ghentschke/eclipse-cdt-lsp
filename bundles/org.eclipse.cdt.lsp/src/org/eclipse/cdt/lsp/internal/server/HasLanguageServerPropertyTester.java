@@ -24,6 +24,7 @@ import org.eclipse.cdt.lsp.ExistingResource;
 import org.eclipse.cdt.lsp.editor.InitialUri;
 import org.eclipse.cdt.lsp.plugin.LspPlugin;
 import org.eclipse.cdt.lsp.server.ICLanguageServerProvider;
+import org.eclipse.cdt.lsp.server.ICLanguageServerProvider3;
 import org.eclipse.cdt.lsp.util.LspUtils;
 import org.eclipse.core.expressions.PropertyTester;
 import org.eclipse.core.resources.IProject;
@@ -49,6 +50,9 @@ public class HasLanguageServerPropertyTester extends PropertyTester {
 	@Override
 	public boolean test(Object receiver, String property, Object[] args, Object expectedValue) {
 		if (cLanguageServerProvider != null) {
+			if (cLanguageServerProvider instanceof ICLanguageServerProvider3 provider3 && !provider3.validCommands()) {
+				return false;
+			}
 			if (receiver instanceof URI) {
 				// called from the language server enabler for LSP4E:
 				var uri = (URI) receiver;

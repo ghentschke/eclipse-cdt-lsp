@@ -22,4 +22,6 @@ public interface ICLanguageServerProvider3 extends ICLanguageServerProvider {
 	 * @return true if language server log shall be written to console
 	 */
 	public boolean logToConsole();
+
+	public boolean validCommands();
 }
