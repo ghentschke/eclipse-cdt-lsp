@@ -105,7 +105,7 @@ public class ClangdCompilationDatabaseSetter extends ClangdCompilationDatabaseSe
 	}
 
 	/**
-	 * Collects a list of accessible C/C++ projects for which the active/selected build configuration or compile_commands.json has been modified.
+	 * Collects a list of accessible C/C++ projects for which the active/selected build configuration, compile_commands.json or .clangd has been modified.
 	 * @param event
 	 * @return Set of projects with changed settings or compile_commands.json
 	 */
@@ -119,11 +119,11 @@ public class ClangdCompilationDatabaseSetter extends ClangdCompilationDatabaseSe
 				} else if (delta.getResource() instanceof IFile file && file.getProject() != null
 						&& file.getProject().isAccessible()
 						&& file.getProject().hasNature(CProjectNature.C_NATURE_ID)) {
-					if (COMPILE_COMMANDS_JSON.contentEquals(file.getName())
+					if (COMPILE_COMMANDS_JSON.contentEquals(file.getName()) || ".clangd".contentEquals(file.getName()) //$NON-NLS-1$
 							|| (file.getFileExtension() != null && "prefs".contentEquals(file.getFileExtension()))) { //$NON-NLS-1$
 						projectsMap.put(file.getProject(), false); // do not remove from resulting map
 					} else {
-						// do NOT remove if the compile_commands.json or .prefs file has changed,
+						// do NOT remove if the compile_commands.json, .clangd or .prefs file has changed,
 						// do NOT remove if the map don't contain the project:
 						if (projectsMap.getOrDefault(file.getProject(), false)) {
 							// remove, because we want to detect settings changes only:
